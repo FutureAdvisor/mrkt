@@ -44,16 +44,39 @@ client = Mrkt::Client.new(
   client_secret: '7Gn0tuiHZiDHnzeu9P14uDQcSx9xIPPt')
 ```
 
-If you need verbosity during troubleshooting, set the client to debug mode
+If you need verbosity during troubleshooting, enable debug mode:
 
 ```ruby
-client.debug = true
+client = Mrkt::Client.new(
+  host: '123-abc-123.mktorest.com', 
+  client_id:  '4567e1cdf-0fae-4685-a914-5be45043f2d8', 
+  client_secret: '7Gn0tuiHZiDHnzeu9P14uDQcSx9xIPPt',
+  debug: true,
+  logger: ::Logger.new("log/marketo.log"), # optional, defaults to Faraday default of logging to STDOUT
+  log_options: {bodies: true}) # optional, defaults to Faraday default of only logging headers
 ```
+
+### Retry authentication
+
+Since the Marketo API provides API access keys with a validity of 3600 seconds, if you are running an hourly cronjob it's possible that your subsequent call receives the same key from the previous hour, which is then immediately expired. If this is the case, you can configure the client to retry until receiving a valid key:
+
+```ruby
+client = Mrkt::Client.new(
+  host: '123-abc-123.mktorest.com',
+  client_id:  '4567e1cdf-0fae-4685-a914-5be45043f2d8',
+  client_secret: '7Gn0tuiHZiDHnzeu9P14uDQcSx9xIPPt',
+  retry_authentication: true,
+  retry_authentication_count: 3, # default: 3
+  retry_authentication_wait_seconds: 1, # default: 0
+  )
+```
+
+This is turned off by default.
 
 ### Get leads matching an email, print their id and email
     
 ```ruby
-response = client.get_leads(:email, 'sammy@acme.com')
+response = client.get_leads(:email, ['sammy@acme.com'])
 response[:result].each do |result|
   p "id: #{result[:id]}, email: #{result[:email]}"
 end
@@ -68,6 +91,20 @@ response[:result].each do |result|
 end
 ```
 
+### Run a smart campaign on existing leads
+```ruby
+campaign_id = 42        # this is the ID of the campaign
+lead_ids    = [1, 2, 4] # these are the leads who receive the campaign
+tokens      = [{        # these tokens (optional) are then passed to the campaign
+                 name:  '{{my.message}}',
+                 value: 'Updated message'
+               }, {
+                 name:  '{{my.other token}}',
+                 value: 'Value for other token'
+               }]
+client.request_campaign(campaign_id, lead_ids, tokens) # tokens can be omited
+=> { requestId: 'e42b#14272d07d78', success: true }
+```
 
 ## Run Tests
 

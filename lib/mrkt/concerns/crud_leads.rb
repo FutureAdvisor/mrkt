@@ -19,7 +19,7 @@ module Mrkt
     def createupdate_leads(leads, options = {})
       action = options.fetch(:action, 'createOrUpdate')
       lookup_field = options.fetch(:lookup_field, nil)
-      partition_name = options.fetch(:partition_name, nil) 
+      partition_name = options.fetch(:partition_name, nil)
       async_processing = options.fetch(:async_processing, nil)
 
       post('/rest/v1/leads.json') do |req|
@@ -37,13 +37,8 @@ module Mrkt
 
     def delete_leads(leads)
       delete('/rest/v1/leads.json') do |req|
-        json_payload(req, :input => leads.map { |lead_id| { :id => lead_id } })
+        json_payload(req, :input => map_lead_ids(leads))
       end
-    end
-
-    def json_payload(req, payload)
-      req.headers[:content_type] = 'application/json'
-      req.body = JSON.generate(payload)
     end
 
     def associate_lead(id, cookie)
